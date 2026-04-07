@@ -1,16 +1,28 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useMemo } from 'react';
+import SubdomainSite from './SubdomainSite';
+import Landing from './Landing';
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
-  return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
-    </div>
-  );
-};
+export default function Index() {
+  const hostname = window.location.hostname;
 
-const Index = PlaceholderIndex;
+  const subdomain = useMemo(() => {
+    // Check for subdomain pattern: xxx.alfacomp.uz
+    // Also handle dev: xxx.localhost, xxx.*.lovable.app etc.
+    const parts = hostname.split('.');
 
-export default Index;
+    // In production: test.alfacomp.uz → parts = ['test', 'alfacomp', 'uz']
+    if (parts.length >= 3 && parts[parts.length - 2] === 'alfacomp' && parts[parts.length - 1] === 'uz') {
+      return parts[0];
+    }
+
+    // In dev/preview on lovable: if query param ?subdomain=xxx
+    const params = new URLSearchParams(window.location.search);
+    return params.get('subdomain');
+  }, [hostname]);
+
+  if (subdomain) {
+    return <SubdomainSite subdomain={subdomain} />;
+  }
+
+  return <Landing />;
+}
