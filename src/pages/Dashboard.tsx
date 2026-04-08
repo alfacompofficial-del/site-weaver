@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { Trash2, ExternalLink, LogOut, Shield } from 'lucide-react';
+import FileUploadZone from '@/components/FileUploadZone';
 
 interface Site {
   id: string;
@@ -23,14 +24,11 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [sites, setSites] = useState<Site[]>([]);
   const [subdomain, setSubdomain] = useState('');
-  const [html, setHtml] = useState('<h1>Hello World!</h1>');
-  const [css, setCss] = useState('body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #111; color: #fff; }');
-  const [js, setJs] = useState('');
+  const [files, setFiles] = useState({ html: '', css: '', js: '' });
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDescription, setSeoDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'html' | 'css' | 'js'>('html');
 
   useEffect(() => {
     fetchSites();
@@ -51,19 +49,26 @@ export default function Dashboard() {
       return;
     }
 
+    if (!files.html && !files.css && !files.js) {
+      toast.error('Загрузите хотя бы один файл');
+      return;
+    }
+
     setLoading(true);
+
+    const payload = {
+      subdomain_name: subdomain,
+      raw_html: files.html,
+      raw_css: files.css,
+      raw_js: files.js,
+      seo_title: seoTitle,
+      seo_description: seoDescription,
+    };
 
     if (editingId) {
       const { error } = await supabase
         .from('sites')
-        .update({
-          subdomain_name: subdomain,
-          raw_html: html,
-          raw_css: css,
-          raw_js: js,
-          seo_title: seoTitle,
-          seo_description: seoDescription,
-        })
+        .update(payload)
         .eq('id', editingId);
 
       if (error) {
@@ -76,12 +81,7 @@ export default function Dashboard() {
     } else {
       const { error } = await supabase.from('sites').insert({
         user_id: user!.id,
-        subdomain_name: subdomain,
-        raw_html: html,
-        raw_css: css,
-        raw_js: js,
-        seo_title: seoTitle,
-        seo_description: seoDescription,
+        ...payload,
       });
 
       if (error) {
@@ -97,9 +97,7 @@ export default function Dashboard() {
 
   function resetForm() {
     setSubdomain('');
-    setHtml('<h1>Hello World!</h1>');
-    setCss('body { font-family: sans-serif; }');
-    setJs('');
+    setFiles({ html: '', css: '', js: '' });
     setSeoTitle('');
     setSeoDescription('');
     setEditingId(null);
@@ -108,9 +106,7 @@ export default function Dashboard() {
   function editSite(site: Site) {
     setEditingId(site.id);
     setSubdomain(site.subdomain_name);
-    setHtml(site.raw_html);
-    setCss(site.raw_css);
-    setJs(site.raw_js);
+    setFiles({ html: site.raw_html, css: site.raw_css, js: site.raw_js });
     setSeoTitle(site.seo_title);
     setSeoDescription(site.seo_description);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -125,12 +121,8 @@ export default function Dashboard() {
     }
   }
 
-  const codeValue = activeTab === 'html' ? html : activeTab === 'css' ? css : js;
-  const setCodeValue = activeTab === 'html' ? setHtml : activeTab === 'css' ? setCss : setJs;
-
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b border-border sticky top-0 z-10 bg-background/80 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
           <h1 className="text-lg font-semibold tracking-tight">
@@ -151,7 +143,6 @@ export default function Dashboard() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8 space-y-8">
-        {/* Editor Section */}
         <section className="bg-card border border-border rounded-lg overflow-hidden">
           <div className="p-4 border-b border-border">
             <h2 className="text-lg font-semibold">
@@ -160,7 +151,6 @@ export default function Dashboard() {
           </div>
 
           <div className="p-4 space-y-4">
-            {/* Subdomain */}
             <div>
               <label className="text-sm text-muted-foreground mb-1.5 block">Поддомен</label>
               <div className="flex items-center gap-2">
@@ -174,7 +164,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* SEO */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm text-muted-foreground mb-1.5 block">SEO Title</label>
@@ -196,30 +185,9 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Code tabs */}
             <div>
-              <div className="flex gap-0 border-b border-border">
-                {(['html', 'css', 'js'] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`px-4 py-2 text-sm font-mono uppercase transition-colors ${
-                      activeTab === tab
-                        ? 'text-primary border-b-2 border-primary'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
-              <textarea
-                value={codeValue}
-                onChange={(e) => setCodeValue(e.target.value)}
-                className="w-full h-72 bg-secondary border border-border rounded-b-lg p-4 font-mono text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary"
-                placeholder={`Вставьте ${activeTab.toUpperCase()} код...`}
-                spellCheck={false}
-              />
+              <label className="text-sm text-muted-foreground mb-1.5 block">Файлы сайта</label>
+              <FileUploadZone onFilesLoaded={setFiles} currentFiles={files} />
             </div>
 
             <div className="flex gap-3">
@@ -235,7 +203,6 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* Sites List */}
         <section>
           <h2 className="text-lg font-semibold mb-4">Мои сайты</h2>
           {sites.length === 0 ? (
