@@ -87,7 +87,7 @@ export default function Dashboard() {
       if (error) {
         toast.error(error.message.includes('unique') ? 'Этот поддомен уже занят' : error.message);
       } else {
-        toast.success(`Опубликовано на ${subdomain}.alfacomp.uz`);
+        toast.success(`Опубликовано: alfacomp.uz/site/${subdomain}`);
         resetForm();
         fetchSites();
       }
@@ -216,14 +216,14 @@ export default function Dashboard() {
                 >
                   <div>
                     <p className="font-mono text-sm font-medium">
-                      {site.subdomain_name}<span className="text-muted-foreground">.alfacomp.uz</span>
+                      alfacomp.uz/site/{site.subdomain_name}
                     </p>
                     {site.seo_title && (
                       <p className="text-xs text-muted-foreground mt-1">{site.seo_title}</p>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => window.open(`https://${site.subdomain_name}.alfacomp.uz`, '_blank')}>
+                    <Button variant="ghost" size="sm" onClick={() => window.open(`/site/${site.subdomain_name}`, '_blank')}>
                       <ExternalLink className="w-4 h-4" />
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => editSite(site)}>
